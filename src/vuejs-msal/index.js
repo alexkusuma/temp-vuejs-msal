@@ -63,6 +63,7 @@ export default class Auth {
   });
  }
  acquireToken(){
+  alert("acquireToken()");
   //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
   this.app.acquireTokenSilent(this.requestObj).then(function (tokenResponse) {
    this.userToken = tokenResponse.accessToken;
@@ -84,13 +85,18 @@ export default class Auth {
   this.app.logout()
  }
  signIn(){
+  let loginSuccess = false;
   this.app.loginPopup(this.requestObj)
    .then(function () {
-     this.acquireToken();
+    loginSuccess = true;
     })
    .catch(function (error) {
      console.log(error);
     });
+  alert(loginSuccess);
+  if(loginSuccess){
+   this.acquireToken();
+  }
  }
 
  /*
@@ -166,9 +172,3 @@ export default class Auth {
   return this.app.getUser()
  }
 }
-
-/*
-
-
-
-*/
