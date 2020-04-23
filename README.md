@@ -1,5 +1,18 @@
 # vuejs-msal (vue.msal.pwa.route.jest)
 
+## Core components to port over
+- /src/iam
+- /src/vuejs-msal
+
+### Dependencies
+- msal: npm install msal
+- axios: npm install axios
+
+### How to get clientId and tenantId
+- go to portal.azure.com
+- go to Azure AD
+- register your app with Azure AD
+
 ## Modules
 - msal
 - pwa
