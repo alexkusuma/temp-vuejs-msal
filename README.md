@@ -4,6 +4,9 @@
 - /src/iam
 - /src/vuejs-msal
 
+## How to use it in your code
+Look at /src/App.vue
+
 ### Dependencies
 - msal: npm install msal
 - axios: npm install axios
