@@ -1,9 +1,28 @@
+import axios from "axios";
 import * as Msal from 'msal';
 
 export default class Auth {
+ /*
+ For plug-ins purposes
+ install (){
+
+ }
+ */
+ graphEndpoint = 'https://graph.microsoft.com/v1.0/';
+ graphMeEndpoint = this.graphEndpoint+'me/';
+ graphGroupEndpoint = this.graphEndpoint+'groups/';
  app = '';
- graphMeEndpoint = 'https://graph.microsoft.com/v1.0/me';
- userToken = '';
+ tokens = {
+  idToken: {},
+  accessToken: {}
+ };
+ userLoggedIn = false;
+ obtainUserInfo = false;
+ obtainUserGroup = false;
+ user = {
+  info: {},
+  groups: []
+ };
  requestObj = {};
  msalConfig = {};
 
@@ -23,6 +42,9 @@ export default class Auth {
   };
   this.app = new Msal.UserAgentApplication(this.msalConfig);
  }
+ get isUserLoggedin() { return this.userLoggedIn }
+ get isUserInfoObtained() { return this.obtainUserInfo }
+ get isuserGroupObtained() { return this.obtainUserGroup }
  // Shared Functionality
  requiresInteraction(errorCode) {
   if (!errorCode || !errorCode.length) {
@@ -30,77 +52,44 @@ export default class Auth {
   }
   return errorCode === "consent_required" || errorCode === "interaction_required" || errorCode === "login_required";
  }
- graphAPICallback(data) {
-  document.getElementById("json").innerHTML = JSON.stringify(data, null, 2);
+ // Acquiring tokens
+ async getIdToken(){
+  this.tokens.idToken = await this.app.loginPopup(this.requestObj)
+   .then(tokenResponse => {
+    this.userLoggedIn=true;
+    return tokenResponse.idToken;
+   })
+   .catch(error => { console.log(error) });
  }
- callMSGraph(theUrl, accessToken, callback) {
-  var xmlHttp = new XMLHttpRequest();
-  xmlHttp.onreadystatechange = function () {
-   if (this.readyState == 4 && this.status == 200)
-   callback(JSON.parse(this.responseText));
-  }
-  xmlHttp.open("GET", theUrl, true); // true for asynchronous
-  xmlHttp.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-  xmlHttp.send();
- }
- acquireTokenPopupAndCallMSGraph() {
-  //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
-  this.app.acquireTokenSilent(this.requestObj).then(function (tokenResponse) {
-   this.userToken = tokenResponse.accessToken;
-   this.callMSGraph(this.graphMeEndpoint, tokenResponse.accessToken, this.graphAPICallback);
-  }).catch(function (error) {
-   console.log(error);
-   // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
-   // Call acquireTokenPopup(popup window)
-   if (this.requiresInteraction(error.errorCode)) {
-    this.app.acquireTokenPopup(this.requestObj).then(function (tokenResponse) {
-     this.userToken = tokenResponse.accessToken;
-     this.callMSGraph(this.graphMeEndpoint, tokenResponse.accessToken, this.graphAPICallback);
-    }).catch(function (error) {
+ async getAccessToken() {
+  this.tokens.accessToken = await this.app.acquireTokenSilent(this.requestObj)
+   .then(tokenResponse => { return tokenResponse.accessToken; })
+   .catch(async error => {
+    if(this.requiresInteraction(error.errorCode)){
+      return await this.app.acquireTokenPopup(this.requestObj)
+     .then(async tokenResponse => { return tokenResponse.accessToken; })
+     .catch(error => console.log(error));
+    }
+    else{
      console.log(error);
-    });
-   }
-  });
- }
- acquireToken(){
-  alert("acquireToken()");
-  //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
-  this.app.acquireTokenSilent(this.requestObj).then(function (tokenResponse) {
-   this.userToken = tokenResponse.accessToken;
-  }).catch(function (error) {
-   console.log(error);
-   // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
-   // Call acquireTokenPopup(popup window)
-   if (this.requiresInteraction(error.errorCode)) {
-    this.app.acquireTokenPopup(this.requestObj).then(function (tokenResponse) {
-     this.userToken = tokenResponse.accessToken;
-    }).catch(function (error) {
-     console.log(error);
-    });
-   }
-  });
+    }
+   });
  }
  // Core functionality
  signOut() {
   this.app.logout()
  }
- signIn(){
-  let loginSuccess = false;
-  this.app.loginPopup(this.requestObj)
-   .then(function () {
-    loginSuccess = true;
-    })
-   .catch(function (error) {
-     console.log(error);
-    });
-  alert(loginSuccess);
-  if(loginSuccess){
-   this.acquireToken();
-  }
+ async signIn(){
+  await this.getIdToken();
+  await this.getAccessToken();
  }
 
  /*
- // Register Callbacks for redirect flow
+  * NOTE:
+  * Login Redirect is mainly for IE11 support.
+  * It's left unsupported at the moment
+  * 
+ // Register Callbacks for login redirect flow
  this.app.handleRedirectCallback(authRedirectCallBack);
  function authRedirectCallBack(error, response) {
   if (error) {
@@ -128,47 +117,56 @@ export default class Auth {
    }
   });
  }
- */
  loginRedirect() {
   this.app.loginRedirect(this.requestObj.scopes)
  }
+ */
 
  // Graph Related
- getGraphToken() {
-  alert(this.requestObj.scopes[0]);
-  /*
-  return this.app.acquireTokenSilent(this.requestObj.scopes).then(
-   accessToken => {
-    return accessToken
+ async getUserInfo(){
+  await axios.get(this.graphMeEndpoint, {
+   headers: {
+    'Authorization': 'Bearer ' + this.tokens.accessToken
    },
-   _error => {
-    return this.app
-    .acquireTokenPopup(this.requestObj.scopes)
-    .then(
-     accessToken => {
-      return accessToken
-     },
-     err => {
-      console.error(err)
-     }
-    )
-   }
-  )
-  */
+  })
+  .then(response => {
+   this.user.info = response.data;
+   this.obtainUserInfo = true;
+  })
+  .catch(error => console.log(error));
  }
- getGraphUserInfo(token) {
-  const headers = new Headers({ Authorization: `Bearer ${token}` });
-  const options = {
-   headers
-  };
-  return fetch(`${this.graphMeEndpoint}`, options)
-   .then(response => response.json())
-   .catch(response => {
-    throw new Error(response.text());
+ async getUserGroups(isSecurityEnabledGroupsOnly){
+  let mygroups = {};
+  let isSecurityOnly = (typeof isSecurityEnabledGroupsOnly === "boolean") ? isSecurityEnabledGroupsOnly : true;
+  
+  // The groups will be returned as list of GUIDs
+  await axios.post(this.graphMeEndpoint+'getMemberGroups', {
+   "securityEnabledOnly": isSecurityOnly
+  }, {
+   headers: {
+    'Authorization': 'Bearer ' + this.tokens.accessToken
+   },
+  })
+   .then(response => { mygroups = response.data.value; })
+   .catch(error => console.log(error));
+  // Query the display name for each of the group
+  await mygroups.forEach(async group => {
+   await axios.get(this.graphGroupEndpoint + group, {
+    headers: {
+     'Authorization': 'Bearer ' + this.tokens.accessToken
+    },
+   })
+    .then(response => {
+     this.user.groups.push({
+      "id": group,
+      "displayName": response.data.displayName,
+      "description": response.data.description,
+      "securityEnabled": response.data.securityEnabled,
+      "deletedDateTime": response.data.deletedDateTime
+     });
+    })
+    .catch(error => console.log(error));
   });
- }
- // Utility
- getUser() {
-  return this.app.getUser()
+  this.obtainUserGroup = true;
  }
 }

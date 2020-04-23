@@ -3,42 +3,46 @@
   <div id="nav">
    <router-link to="/">Home</router-link> | 
    <router-link to="/about">About</router-link>
-   <p><button @click="say(buttonCaption + '!')">{{ buttonCaption }}</button> | <button @click="say('graph!')">Calling Graph API</button> | <button @click="login()">Login</button> </p>
-   <span>{{ this.graphAPIResult }}|{{ this.myGraphApiSpan }}</span>
+   <p><button v-show="!this.userLoggedin" @click="login()">Log In</button><button v-show="this.userLoggedin" @click="logout()">Log Out</button> | <button @click="graphMe()">Get User's Info</button> | <button @click="graphMyGroup()">Get User's Groups</button></p>
   </div>
-  <p><span>[{{ this.myClientId }}]</span></p>
-  <p><span>[{{ this.aClientId }}]</span></p>
-  <p><span>[{{ this.authorityBaseUrl }}]</span></p>
-  <p><pre>[{{ this.myToken }}]</pre></p>
-  <p><pre id="json"></pre></p>
+  <div><pre>{{ this.userLoggedin }}|{{ this.userInfoObtained }}</pre></div>
+  <div v-show="this.userInfoObtained">
+   <p>User Info:</p>
+   <pre style="text-align: left;">{{ this.user.info }}</pre>
+  </div>
+  <div v-show="this.userGroupObtained">
+   <p>User's groups:</p>
+   <pre style="text-align: left;">{{ this.user.groups }}</pre>
+  </div>
   <router-view/>
  </div>
 </template>
 <script>
-//import axios from "axios";
-//import {applicationConfig, vueauth} from "./auth";
-import auth from "./auth";
+import iam from "./iam";
 
 export default {
  name: 'msal-app',
  props:{
  },
  data: () => ({
-  user: "",
-  myToken: "",
+  user: {
+   info: "",
+   groups: ""
+  },
+  userLoggedin: false,
+  userInfoObtained: false,
+  userGroupObtained: false,
   buttonCaption: "my caption",
-  graphAPIResult: "",
-  myGraphApiSpan: "",
-  myClientId: auth.msalConfig.auth.clientId,
-  aClientId: auth.msalConfig.auth.clientId
  }),
  created: function () {
  },
  mounted: function () {
+  this.userLoggedin = iam.isUserLoggedin;
+  this.userInfoObtained = iam.isUserInfoObtained;
  },
  computed: {
   authorityBaseUrl(){
-   return auth.msalConfig.auth.authority;
+   return null;
   }
  },
  watch: {
@@ -47,12 +51,22 @@ export default {
   },
  },
  methods:{
-  say(message){
-   alert(message);
+  async login(){
+   await iam.signIn();
+   this.userLoggedin = iam.isUserLoggedin;
   },
-  login(){
-   this.user = auth.signIn();
-   this.myToken = auth.userToken;
+  logout(){
+   iam.signOut();
+  },
+  async graphMe(){
+   await iam.getUserInfo();
+   this.user.info = iam.user.info;
+   this.userInfoObtained = iam.isUserInfoObtained;
+  },
+  async graphMyGroup(){
+   await iam.getUserGroups(false);
+   this.user.groups = iam.user.groups;
+   this.userGroupObtained = iam.isuserGroupObtained;
   }
  },
 };
