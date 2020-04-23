@@ -1,8 +1,8 @@
 import Auth from '@/vuejs-msal';
 
 const applicationConfig = {
- clientId: 'c58d5c8c-7d5a-4c59-9219-c77576d6a8ea',
- tenantId: '7fab64ae-c78a-430b-8380-5ea2cedf0244', // Options: Tenant Id|Tenant name e.g. contoso.microsoft.com|organizations|common|consumers
+ clientId: 'd81d142b-bd09-4f58-9a86-bca402c4a1bc',
+ tenantId: '03ed2d27-eefc-4018-8a19-9963edaf5ce1', // Options: Tenant Id|Tenant name e.g. contoso.microsoft.com|organizations|common|consumers
  // The options below are not implemented, yet
  appinsightsid: '',
  // The options below are no longer required
