@@ -12,9 +12,11 @@ Look at /src/App.vue
 - axios: npm install axios
 
 ### How to get clientId and tenantId
+- make note of the url of the deployment website, and the local url including the port, e.g. http://localhost:8081. Yes, the referer can use localhost
 - go to portal.azure.com
 - go to Azure AD
 - register your app with Azure AD
+[https://docs.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications?tabs=app-reg-preview#register-a-web-api](https://docs.microsoft.com/en-us/azure/active-directory-b2c/tutorial-register-applications?tabs=app-reg-preview#register-a-web-api)
 
 ## Modules
 - msal
